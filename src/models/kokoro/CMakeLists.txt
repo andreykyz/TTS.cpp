@@ -4,4 +4,6 @@ target_sources(tts PRIVATE
         model.h
         phonemizer.cpp
         phonemizer.h
+        ru_frontend.cpp
+        ru_frontend.h
 )
