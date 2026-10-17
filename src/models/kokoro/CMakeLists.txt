@@ -6,4 +6,8 @@ target_sources(tts PRIVATE
         phonemizer.h
         ru_frontend.cpp
         ru_frontend.h
+        ru_tokenizer.cpp
+        ru_tokenizer.h
+        ru_dict.cpp
+        ru_dict.h
 )

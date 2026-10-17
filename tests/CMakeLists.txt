@@ -1,4 +1,6 @@
 if (LINUX)
     add_subdirectory(aPaleBlueDot)
     add_subdirectory(ru_frontend)
+    add_subdirectory(ru_tokenizer)
+    add_subdirectory(ru_dict)
 endif ()
