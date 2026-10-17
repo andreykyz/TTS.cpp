@@ -1411,8 +1411,15 @@ void kokoro_runner::generate(const char * prompt, tts_response & response, const
     voice = config.voice;
     espeak_voice_id = config.espeak_voice_id;
     propagate_voice_setting();
+    // Russian G2P is selected by the resolved espeak voice (contains "ru"), not
+    // the voice-name prefix: kokoro-ru voices (sveta/masha/dima) carry no
+    // language prefix. Falls back to plain espeak when RUAccent isn't loaded.
+    std::string espeak_id = espeak_voice_id;
+    if (espeak_id.empty()) espeak_id = get_espeak_id_from_kokoro_voice(voice);
+    const bool use_ru_g2p =
+        model->ru_accent.loaded() && espeak_id.find("ru") != std::string::npos;
     std::string phonemized_prompt;
-    if (!voice.empty() && voice[0] == 'r' && model->ru_accent.loaded()) {
+    if (use_ru_g2p) {
         // Russian: full G2P pipeline. RUAccent stress -> acute marks ->
         // lower -> orthoepic respell -> espeak IPA -> normalize -> vowel
         // reduction -> sch lengthening. Mirrors kokoro-ru/ru_g2p.py.
