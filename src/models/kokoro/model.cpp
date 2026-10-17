@@ -1,4 +1,5 @@
 #include "model.h"
+#include "ru_frontend.h"
 
 static struct ggml_tensor * build_albert_attn_mask(ggml_context * ctx, struct kokoro_duration_context *kctx, const kokoro_ubatch & batch) {
     kctx->attn_mask = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, (int64_t) batch.n_tokens, (int64_t) batch.n_tokens);
@@ -1410,12 +1411,28 @@ void kokoro_runner::generate(const char * prompt, tts_response & response, const
     voice = config.voice;
     espeak_voice_id = config.espeak_voice_id;
     propagate_voice_setting();
-    // replace all non-sentence terminating characters with '--' which espeak will treat as a pause.
-    // We preserve the other punctuation for cleaner chunking pre-tokenization
-    std::string normalized{prompt};
-    normalized = replace_any(prompt, ",;:", "--");
-    normalized = replace_any(prompt, "\n", " ");
-    std::string phonemized_prompt = phmzr->text_to_phonemes(normalized);
+    std::string phonemized_prompt;
+    if (!voice.empty() && voice[0] == 'r' && model->ru_accent.loaded()) {
+        // Russian: full G2P pipeline. RUAccent stress -> acute marks ->
+        // lower -> orthoepic respell -> espeak IPA -> normalize -> vowel
+        // reduction -> sch lengthening. Mirrors kokoro-ru/ru_g2p.py.
+        std::string text = prompt;
+        text = ru::brackets(text);
+        text = model->ru_accent.process(text);
+        text = ru::plus_to_acute(text);
+        text = ru::lower(text);
+        text = ru::respell(text);
+        text = phmzr->text_to_phonemes(text);
+        text = ru::separate_punct(text);
+        phonemized_prompt = ru::lengthen_sch(ru::reduce_vowels(ru::normalize(text)));
+    } else {
+        // replace all non-sentence terminating characters with '--' which espeak will treat as a pause.
+        // We preserve the other punctuation for cleaner chunking pre-tokenization
+        std::string normalized{prompt};
+        normalized = replace_any(prompt, ",;:", "--");
+        normalized = replace_any(prompt, "\n", " ");
+        phonemized_prompt = phmzr->text_to_phonemes(normalized);
+    }
 
   	// Kokoro users a utf-8 single character tokenizer so if the size of the prompt is smaller than the max context length without the
   	// beginning of sentence and end of sentence tokens then we can compute it all at once.

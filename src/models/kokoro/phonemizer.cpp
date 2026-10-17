@@ -1,5 +1,7 @@
 #include "phonemizer.h"
 
+#include <cstdlib>
+
 #ifdef ESPEAK_INSTALL
 /**
  * espeak_wrapper functions and assignments
@@ -37,7 +39,10 @@ void espeak_wrapper::initialize(espeak_AUDIO_OUTPUT output, int buflength, const
 	std::lock_guard<std::mutex> lock(mutex);
 	if (!espeak_initialized) {
 		espeak_initialized = true;
-		espeak_Initialize(output, buflength, path, options);
+		// Allow a runtime override of the espeak data directory (e.g. to use
+		// the acute-aware Russian data that honors U+0301 stress marks).
+		const char * override = std::getenv("TTS_ESPEAK_DATA_PATH");
+		espeak_Initialize(output, buflength, (override && override[0] != '\0') ? override : path, options);
 	}
 }
 #endif

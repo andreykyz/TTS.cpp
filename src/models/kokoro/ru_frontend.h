@@ -28,11 +28,18 @@ std::string           utf8_encode(const std::vector<uint32_t> & cps);
 std::string brackets(const std::string & text);
 //   RUAccent emits '+' before the stressed vowel; move it to U+0301 after it
 std::string plus_to_acute(const std::string & text);
+//   fold A-Z and А-Я/Ё to lower case (respell tables are lower-case only)
+std::string lower(const std::string & text);
 //   orthoepic respelling (дорого->дорога, солнце->сонце, -ого->-ово, ...)
 //   input is expected to be lower-cased and acute-marked (U+0301)
 std::string respell(const std::string & text);
 
 // ipa -> ipa
+//   TTS.cpp's single espeak_TextToPhonemes call leaves punctuation attached
+//   with no trailing space ("et!kˈɑk"); the reference misaki backend re-inserts
+//   it with a space ("et! kˈɑk"). Add that space so the token boundaries match.
+//   Must run before reduce_vowels (per-token).
+std::string separate_punct(const std::string & ipa);
 //   fold espeak-ng leaks (u", ɭ, ɵ, ʑ, ʐ, ʧʲ) into the model vocab
 std::string normalize(const std::string & ipa);
 //   щ is long [ɕː]; espeak emits a short [ɕ] and never emits ː

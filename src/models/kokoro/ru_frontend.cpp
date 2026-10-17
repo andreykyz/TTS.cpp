@@ -135,6 +135,20 @@ std::string plus_to_acute(const std::string & text) {
     return utf8_encode(out);
 }
 
+// ------------------------------------------------------------------ lower
+std::string lower(const std::string & text) {
+    const std::vector<uint32_t> cps = utf8_decode(text);
+    std::vector<uint32_t> out;
+    out.reserve(cps.size());
+    for (const uint32_t cp : cps) {
+        if (cp >= 0x410 && cp <= 0x42F)      out.push_back(cp + 0x20);  // А-Я -> а-я
+        else if (cp == 0x401)                out.push_back(0x451);       // Ё -> ё
+        else if (cp >= 0x41 && cp <= 0x5A)   out.push_back(cp + 0x20);   // A-Z -> a-z
+        else                                 out.push_back(cp);
+    }
+    return utf8_encode(out);
+}
+
 // ------------------------------------------------------------------ respell
 namespace {
 
@@ -296,10 +310,31 @@ std::string respell(const std::string & text) {
     return utf8_encode(out);
 }
 
+// ------------------------------------------------------------------ separate_punct
+std::string separate_punct(const std::string & ipa) {
+    const std::vector<uint32_t> cps = utf8_decode(ipa);
+    std::vector<uint32_t> out;
+    out.reserve(cps.size() + 8);
+    for (size_t i = 0; i < cps.size(); ++i) {
+        out.push_back(cps[i]);
+        const bool is_punct =
+            cps[i] == 0x21 || cps[i] == 0x3F || cps[i] == 0x2E ||  // ! ? .
+            cps[i] == 0x2C || cps[i] == 0x3B || cps[i] == 0x3A;   // , ; :
+        if (is_punct && i + 1 < cps.size() && cps[i + 1] != 0x20)
+            out.push_back(0x20);
+    }
+    return utf8_encode(out);
+}
+
 // ------------------------------------------------------------------ normalize
 std::string normalize(const std::string & ipa) {
-    // (old codepoints, new codepoints), applied in order
+    // (old codepoints, new codepoints), applied in order.
+    // The first two fold espeak's two-symbol affricates (ts, tʃ) into the
+    // single IPA symbols the model vocab uses (ʦ, ʧ) -- misaki's EspeakG2P
+    // does this via its e2m table; TTS.cpp's espeak mode emits them untied.
     static const std::vector<std::pair<std::vector<uint32_t>, std::vector<uint32_t>>> map = {
+        {{0x74, 0x73}, {0x2A6}},      // ts -> ʦ
+        {{0x74, 0x283}, {0x2A7}},     // tʃ -> ʧ
         {{0x75, 0x22}, {0x75}},       // u" -> u
         {{0x26D},      {0x6C}},       // ɭ -> l
         {{0x275},      {0x6F}},       // ɵ -> o

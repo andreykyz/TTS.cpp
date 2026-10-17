@@ -6,6 +6,7 @@
 #include "../../tts_model.h"
 #include "models/loaders.h"
 #include "phonemizer.h"
+#include "ru_accent.h"
 
 extern const struct kokoro_model_loader final : tts_model_loader {
     explicit kokoro_model_loader();
@@ -26,6 +27,7 @@ static std::map<char, const char *> KOKORO_LANG_TO_ESPEAK_ID = {
 	{'i', "roa/it"},
 	{'j', "jpx/ja"},
 	{'p', "roa/pt-BR"},
+	{'r', "zle/ru"},
 	{'z', "sit/cmn"}
 };
 
@@ -266,6 +268,10 @@ struct kokoro_model : tts_model {
 
 	// Decoding and Generation portion of the model
 	struct kokoro_decoder * decoder;
+
+	// Russian G2P stress pipeline (RUAccent). Loaded on demand from
+	// KOKORO_RU_DATA_DIR / KOKORO_RU_MODELS_DIR; used only for Russian voices.
+	ru::RUAccent ru_accent;
 
 	// the default hidden states need to be initialized
 	std::vector<lstm*> lstms;
