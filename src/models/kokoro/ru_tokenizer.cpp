@@ -60,7 +60,7 @@ bool is_space(uint32_t cp) {
 std::string to_lower_utf8(const std::string & s) {
     auto cps = utf8_decode(s);
     for (auto & cp : cps) {
-        if (cp >= 0x410 && cp <= 0x42F) cp += 0x30;   // A-Z (Cyrillic) -> a-z
+        if (cp >= 0x410 && cp <= 0x42F) cp += 0x20;   // A-Z (Cyrillic) -> a-z
         else if (cp >= 0x41 && cp <= 0x5A) cp += 0x20; // A-Z (Latin) -> a-z
     }
     return utf8_encode(cps);
@@ -227,7 +227,16 @@ TokOut CharTokenizer::tokenize(const std::string & text) const {
 // WordPieceTokenizer
 // ---------------------------------------------------------------------------
 bool WordPieceTokenizer::load(const std::string & vocab_path) {
-    return load_vocab_txt(vocab_path, vocab_);
+    if (!load_vocab_txt(vocab_path, vocab_)) return false;
+    id2tok_.resize(vocab_.size());
+    for (auto & kv : vocab_) id2tok_[kv.second] = kv.first;
+    return true;
+}
+
+const std::string & WordPieceTokenizer::id_to_token(int id) const {
+    static const std::string kEmpty;
+    if (id < 0 || id >= (int) id2tok_.size()) return kEmpty;
+    return id2tok_[id];
 }
 
 TokOut WordPieceTokenizer::tokenize(const std::string & text) const {

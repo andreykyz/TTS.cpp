@@ -6,9 +6,10 @@
 //   text -> brackets -> [RUAccent stress] -> plus_to_acute -> lower -> respell
 //        -> espeak(IPA) -> normalize -> lengthen_sch -> reduce_vowels
 //
-// The RUAccent stress step is intentionally left out here; it is a separate
-// ONNX-based component (see ru_accent.cpp). The functions below operate on
-// UTF-8 std::string and are unit-testable in isolation.
+// The RUAccent stress step is a separate model-based component (ru_accent.cpp,
+// class ru::RUAccent::process); it is composed around these pure-text steps.
+// The functions below operate on UTF-8 std::string and are unit-testable in
+// isolation.
 #ifndef ru_frontend_h
 #define ru_frontend_h
 

@@ -55,8 +55,11 @@ public:
     bool load(const std::string & vocab_path);
     TokOut tokenize(const std::string & text) const;
     int vocab_size() const { return (int) vocab_.size(); }
+    // Token string for an id (keeps the "##" subword prefix, if any).
+    const std::string & id_to_token(int id) const;
 private:
     std::unordered_map<std::string, int> vocab_;   // token -> id
+    std::vector<std::string> id2tok_;              // id -> token (reverse map)
     int cls_ = 2, sep_ = 3, unk_ = 1;
     int max_chars_ = 100;
 };

@@ -12,6 +12,8 @@ target_sources(tts PRIVATE
         ru_dict.h
         ru_encoder.cpp
         ru_encoder.h
+        ru_accent.cpp
+        ru_accent.h
 )
 
 # The encoder's GEMM uses AVX2/FMA intrinsics (guarded by __AVX2__); the rest
