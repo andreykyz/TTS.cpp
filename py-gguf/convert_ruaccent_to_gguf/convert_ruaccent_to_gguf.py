@@ -422,6 +422,7 @@ def build_metadata(fam, tensors, cfg, g=None):
     else:
         labels = DEFAULT_LABELS[fam]
 
+    ln_eps = float(cfg.get("layer_norm_eps") or (1e-7 if fam == "deberta" else 1e-12))
     meta = {
         "n_layers": n_layers,
         "hidden": hidden,
@@ -432,6 +433,7 @@ def build_metadata(fam, tensors, cfg, g=None):
         "quantized": any(n.endswith("_q8") for n in tensors),
         "labels": labels,
         "max_length": max_length,
+        "ln_eps": ln_eps,
     }
     if "rope_embd" in tensors:
         meta["rope_max_pos"] = int(tensors["rope_embd"].shape[0])
@@ -485,6 +487,8 @@ def convert(model_dir, save_path):
             writer.add_bool(k, v)
         elif isinstance(v, int):
             writer.add_int32(k, v)
+        elif isinstance(v, float):
+            writer.add_float32(k, v)
         elif isinstance(v, list):
             writer.add_array(k, v)
         else:
