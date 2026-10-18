@@ -1423,6 +1423,11 @@ void kokoro_runner::generate(const char * prompt, tts_response & response, const
         // Russian: full G2P pipeline. RUAccent stress -> acute marks ->
         // lower -> orthoepic respell -> espeak IPA -> normalize -> vowel
         // reduction -> sch lengthening. Mirrors kokoro-ru/ru_g2p.py.
+        // The espeak voice must be the Russian one: propagate_voice_setting()
+        // keys off the kokoro voice's first letter, which kokoro-ru voices
+        // (sveta/masha/dima) don't carry, so it would otherwise leave espeak
+        // on the English voice and espeak would spell Russian words out.
+        update_voice(espeak_id);
         std::string text = prompt;
         text = ru::brackets(text);
         text = model->ru_accent.process(text);
