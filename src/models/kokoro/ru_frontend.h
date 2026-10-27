@@ -38,6 +38,13 @@ std::string respell(const std::string & text);
 //   blank line (\n\n) makes the first "line" empty and the whole following
 //   piece is dropped, silently deleting sentences/paragraphs after blank lines.
 std::string collapse_ws(const std::string & text);
+//   normalise the various dash characters to the em-dash U+2014 that the
+//   Kokoro-ru vocab actually contains as a pause token: en-dash U+2013 and an
+//   ASCII hyphen-minus used AS a dash (flanked by whitespace / string bounds)
+//   become U+2014, while a hyphen between two letters/digits (что-то, 1-й) is
+//   left alone. Input is expected to already be whitespace-collapsed so the
+//   "flanked by whitespace" test is reliable.
+std::string map_dashes(const std::string & text);
 
 // ipa -> ipa
 //   TTS.cpp's single espeak_TextToPhonemes call leaves punctuation attached

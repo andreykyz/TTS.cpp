@@ -334,6 +334,38 @@ std::string collapse_ws(const std::string & text) {
     return out;
 }
 
+// ------------------------------------------------------------------ map_dashes
+// Fold every dash-like mark onto the em-dash U+2014 that the Kokoro-ru vocab
+// contains as a learned pause token. En-dashes are always pauses, so they map
+// unconditionally. A bare ASCII hyphen is only a pause when it is NOT sitting
+// between two word characters, so intra-word hyphenation (что-то, 1-й) and
+// Latin/digit hyphenation survive, while a hyphen used as a dash -- in front of
+// a dialogue line or parenthetical -- becomes an em-dash pause.
+std::string map_dashes(const std::string & text) {
+    const uint32_t HYPHEN = 0x002D, EN_DASH = 0x2013, EM_DASH = 0x2014;
+    auto is_word = [](uint32_t cp) {
+        return (cp >= 0x0400 && cp <= 0x04FF) ||        // Cyrillic
+               (cp >= 'A' && cp <= 'Z') || (cp >= 'a' && cp <= 'z') ||
+               (cp >= '0' && cp <= '9') || cp == ACUTE;
+    };
+    const std::vector<uint32_t> cps = utf8_decode(text);
+    std::vector<uint32_t> out;
+    out.reserve(cps.size());
+    for (size_t i = 0; i < cps.size(); ++i) {
+        const uint32_t cp = cps[i];
+        if (cp == EN_DASH) {
+            out.push_back(EM_DASH);
+        } else if (cp == HYPHEN) {
+            const bool left_word  = (i > 0) && is_word(cps[i - 1]);
+            const bool right_word = (i + 1 < cps.size()) && is_word(cps[i + 1]);
+            out.push_back((left_word && right_word) ? HYPHEN : EM_DASH);
+        } else {
+            out.push_back(cp);
+        }
+    }
+    return utf8_encode(out);
+}
+
 // ------------------------------------------------------------------ separate_punct
 std::string separate_punct(const std::string & ipa) {
     const std::vector<uint32_t> cps = utf8_decode(ipa);

@@ -39,6 +39,31 @@ int main() {
     check("lengthen_sch",  lengthen_sch,  LENGTHEN,  LENGTHEN_N);
     check("reduce_vowels", reduce_vowels, REDUCE,    REDUCE_N);
 
+    // collapse_ws and map_dashes are C++-only helpers (no ru_g2p.py reference),
+    // so they are checked against hand-written expectations.
+    {
+        const std::pair<std::string, std::string> cw[] = {
+            {"a\n\nb",     "a b"},
+            {"a  \t\n  b", "a b"},
+            {"  leading",  "leading"},
+            {"trailing  ", "trailing"},
+            {"a\r\nb",     "a b"},
+            {"one two",    "one two"},
+        };
+        check("collapse_ws", collapse_ws, cw, (int)(sizeof(cw) / sizeof(cw[0])));
+
+        const std::pair<std::string, std::string> md[] = {
+            {"что-то",                 "что-то"},                  // intra-word hyphen kept
+            {"1-й",                    "1-й"},                     // digit-letter hyphen kept
+            {"Красно-донской",         "Красно-донской"},          // letter-letter kept
+            {"- Ох",                   "— Ох"},                    // leading dialogue dash
+            {"бабуля! - прокричала",   "бабуля! — прокричала"},   // spaced hyphen as dash
+            {"текст – скобка",         "текст — скобка"},          // en-dash -> em-dash
+            {"уже — эм",               "уже — эм"},                // em-dash unchanged
+        };
+        check("map_dashes", map_dashes, md, (int)(sizeof(md) / sizeof(md[0])));
+    }
+
     if (failures == 0) {
         std::cout << "ALL TESTS PASSED\n";
         return 0;
