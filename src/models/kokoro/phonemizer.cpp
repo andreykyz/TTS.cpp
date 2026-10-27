@@ -997,9 +997,27 @@ bool phonemizer::route(corpus * text, std::string* output, conditions * flags) {
 #ifdef ESPEAK_INSTALL
 std::string phonemizer::espeak_text_to_phonemes(const char * text) {
 	int mode = phoneme_mode == IPA ? (0 << 8 | 0x02) : (0 << 8 | 0x01);
+	// espeak_TextToPhonemes is line-based and stateful: each call phonemizes
+	// up to the first line break and advances *txt_ptr to the rest. It MUST be
+	// called repeatedly until the text is exhausted, otherwise everything after
+	// the first newline is silently dropped. (A prior single-call version lost
+	// whole sentences whenever a piece began right after a blank line.)
 	const void ** txt_ptr = (const void**)&text;
-	const char * resp = espeak_wrapper::get_instance()->text_to_phonemes(txt_ptr, espeakCHARS_UTF8, mode);
-	return strip(std::string(resp));
+	std::string all;
+	const char * prev = text;
+	while (text != nullptr && *text != '\0') {
+		const char * resp = espeak_wrapper::get_instance()->text_to_phonemes(txt_ptr, espeakCHARS_UTF8, mode);
+		if (resp != nullptr) {
+			std::string piece = strip(std::string(resp));
+			if (!piece.empty()) {
+				if (!all.empty()) all += " ";
+				all += piece;
+			}
+		}
+		if (text == prev) break;  // no progress -> stop rather than spin
+		prev = text;
+	}
+	return all;
 }
 #endif
 

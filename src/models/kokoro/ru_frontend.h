@@ -33,6 +33,11 @@ std::string lower(const std::string & text);
 //   orthoepic respelling (дорого->дорога, солнце->сонце, -ого->-ово, ...)
 //   input is expected to be lower-cased and acute-marked (U+0301)
 std::string respell(const std::string & text);
+//   collapse every run of whitespace (space, \n, \r, \t, ...) to a single space
+//   and trim the ends. Needed because espeak_TextToPhonemes is line-based: a
+//   blank line (\n\n) makes the first "line" empty and the whole following
+//   piece is dropped, silently deleting sentences/paragraphs after blank lines.
+std::string collapse_ws(const std::string & text);
 
 // ipa -> ipa
 //   TTS.cpp's single espeak_TextToPhonemes call leaves punctuation attached

@@ -310,6 +310,30 @@ std::string respell(const std::string & text) {
     return utf8_encode(out);
 }
 
+// ------------------------------------------------------------------ collapse_ws
+// All whitespace we care about is ASCII (space, \n, \r, \t, \v, \f), so a byte
+// scan is safe: UTF-8 multibyte sequences never contain bytes < 0x20, so we
+// cannot split a multibyte character. Collapse runs to one space and trim ends.
+std::string collapse_ws(const std::string & text) {
+    auto is_ws = [](char c) {
+        return c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\v' || c == '\f';
+    };
+    std::string out;
+    out.reserve(text.size());
+    bool prev_ws = false;
+    for (char c : text) {
+        if (is_ws(c)) {
+            if (!out.empty() && !prev_ws) out.push_back(' ');
+            prev_ws = true;
+        } else {
+            out.push_back(c);
+            prev_ws = false;
+        }
+    }
+    while (!out.empty() && out.back() == ' ') out.pop_back();
+    return out;
+}
+
 // ------------------------------------------------------------------ separate_punct
 std::string separate_punct(const std::string & ipa) {
     const std::vector<uint32_t> cps = utf8_decode(ipa);

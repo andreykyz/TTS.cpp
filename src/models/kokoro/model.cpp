@@ -1434,6 +1434,7 @@ void kokoro_runner::generate(const char * prompt, tts_response & response, const
         text = ru::plus_to_acute(text);
         text = ru::lower(text);
         text = ru::respell(text);
+        text = ru::collapse_ws(text);
         text = phmzr->text_to_phonemes(text);
         text = ru::separate_punct(text);
         phonemized_prompt = ru::lengthen_sch(ru::reduce_vowels(ru::normalize(text)));
