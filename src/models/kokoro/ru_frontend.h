@@ -42,9 +42,17 @@ std::string collapse_ws(const std::string & text);
 //   Kokoro-ru vocab actually contains as a pause token: en-dash U+2013 and an
 //   ASCII hyphen-minus used AS a dash (flanked by whitespace / string bounds)
 //   become U+2014, while a hyphen between two letters/digits (что-то, 1-й) is
-//   left alone. Input is expected to already be whitespace-collapsed so the
-//   "flanked by whitespace" test is reliable.
+//   left alone. Any non-word byte (space, newline, tab, punctuation) counts as
+//   a boundary, so this runs before collapse_ws -- and must, because the
+//   stress/respell stages downstream silently drop en-dashes.
 std::string map_dashes(const std::string & text);
+//   swap the multibyte pause marks espeak strips (em-dash U+2014, straight /
+//   curly double quotes, ellipsis) for the single-byte sentinels that have been
+//   added to STOPPING_TOKENS, so a single text_to_phonemes pass keeps them out
+//   of espeak and re-emits them verbatim. pause_sentinels_decode reverses it,
+//   expanding each sentinel to the real character surrounded by spaces.
+std::string pause_sentinels_encode(const std::string & text);
+std::string pause_sentinels_decode(const std::string & text);
 
 // ipa -> ipa
 //   TTS.cpp's single espeak_TextToPhonemes call leaves punctuation attached

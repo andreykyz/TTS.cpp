@@ -366,6 +366,46 @@ std::string map_dashes(const std::string & text) {
     return utf8_encode(out);
 }
 
+// ----------------------------------------------------- pause_sentinels_encode
+// Em-dash 0x2014 -> 0x01, " 0x0022 -> 0x02, ellipsis 0x2026 -> 0x03,
+// left quote 0x201C -> 0x04, right quote 0x201D -> 0x05. Other codepoints are
+// re-encoded unchanged.
+std::string pause_sentinels_encode(const std::string & text) {
+    const std::vector<uint32_t> cps = utf8_decode(text);
+    std::string out;
+    out.reserve(text.size());
+    for (const uint32_t cp : cps) {
+        switch (cp) {
+            case 0x2014: out.push_back('\x01'); break;
+            case 0x0022: out.push_back('\x02'); break;
+            case 0x2026: out.push_back('\x03'); break;
+            case 0x201C: out.push_back('\x04'); break;
+            case 0x201D: out.push_back('\x05'); break;
+            default:     out += utf8_encode(std::vector<uint32_t>{ cp }); break;
+        }
+    }
+    return out;
+}
+
+// ----------------------------------------------------- pause_sentinels_decode
+// Inverse of pause_sentinels_encode: each sentinel byte becomes the real
+// character flanked by spaces so it stands alone as a pause token.
+std::string pause_sentinels_decode(const std::string & text) {
+    std::string out;
+    out.reserve(text.size() + 16);
+    for (const char c : text) {
+        switch (c) {
+            case '\x01': out += " \xe2\x80\x94 "; break;  // " — "
+            case '\x02': out += " \" "; break;            // " \" "
+            case '\x03': out += " \xe2\x80\xa6 "; break;  // " … "
+            case '\x04': out += " \xe2\x80\x9c "; break;  // " " "
+            case '\x05': out += " \xe2\x80\x9d "; break;  // " " "
+            default:     out.push_back(c); break;
+        }
+    }
+    return out;
+}
+
 // ------------------------------------------------------------------ separate_punct
 std::string separate_punct(const std::string & ipa) {
     const std::vector<uint32_t> cps = utf8_decode(ipa);

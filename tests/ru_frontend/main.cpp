@@ -64,6 +64,28 @@ int main() {
         check("map_dashes", map_dashes, md, (int)(sizeof(md) / sizeof(md[0])));
     }
 
+    // pause_sentinels: each protected mark folds to one control byte and back;
+    // ordinary text passes through untouched.
+    {
+        int bad = 0;
+        struct { const char * mark; char s; } cases[] = {
+            { "\xe2\x80\x94", '\x01' },  // em-dash
+            { "\"",          '\x02' },  // straight double quote
+            { "\xe2\x80\xa6", '\x03' },  // ellipsis
+            { "\xe2\x80\x9c", '\x04' },  // left double quote
+            { "\xe2\x80\x9d", '\x05' },  // right double quote
+        };
+        for (const auto & c : cases) {
+            const std::string e = pause_sentinels_encode(c.mark);
+            if (e.size() != 1 || e[0] != c.s) ++bad;                       // encode -> sentinel
+            if (pause_sentinels_decode(std::string(1, c.s)).find(c.mark) == std::string::npos) ++bad;  // decode -> real char
+        }
+        if (pause_sentinels_encode("привет мир") != "привет мир") ++bad;   // plain text unchanged
+        if (pause_sentinels_decode("привет мир") != "привет мир") ++bad;
+        if (bad) { ++failures; std::cout << "FAIL pause_sentinels (" << bad << ")\n"; }
+        else     std::cout << "pause_sentinels: all passed\n";
+    }
+
     if (failures == 0) {
         std::cout << "ALL TESTS PASSED\n";
         return 0;

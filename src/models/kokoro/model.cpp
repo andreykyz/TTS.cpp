@@ -1430,52 +1430,26 @@ void kokoro_runner::generate(const char * prompt, tts_response & response, const
         update_voice(espeak_id);
         std::string text = prompt;
         text = ru::brackets(text);
+        // Fold the various dash characters onto the em-dash U+2014 up front:
+        // RUAccent / respell drop en-dashes (U+2013) but keep ASCII hyphens and
+        // em-dashes, so any dash normalisation has to happen before they run or
+        // the en-dash pauses never reach the model. map_dashes keeps intra-word
+        // hyphens (что-то, 1-й) and turns dashes used as pauses into em-dashes.
+        text = ru::map_dashes(text);
         text = model->ru_accent.process(text);
         text = ru::plus_to_acute(text);
         text = ru::lower(text);
         text = ru::respell(text);
         text = ru::collapse_ws(text);
-        text = ru::map_dashes(text);
-        // Phonemize run-by-run so the pause marks the model knows about but
-        // espeak strips (em-dash, quotes, ellipsis) survive into the output.
-        // Split the text on those codepoints, phonemize each plain run with
-        // espeak, then re-insert the marks (space-separated) between the runs.
-        // espeak's own STOPPING_TOKENS path still handles . , ; : ! ? inside
-        // each run; only the multibyte/quote marks the byte-split cannot see
-        // are preserved here.
-        {
-            auto is_pause = [](uint32_t cp) {
-                return cp == 0x2014 ||  // em-dash (after map_dashes)
-                       cp == 0x0022 ||  // straight double quote
-                       cp == 0x2026 ||  // ellipsis
-                       cp == 0x201C ||  // left double quote
-                       cp == 0x201D;    // right double quote
-            };
-            const std::vector<uint32_t> cps = ru::utf8_decode(text);
-            std::string out;
-            std::vector<uint32_t> run;
-            auto flush = [&]() {
-                if (run.empty()) return;
-                std::string seg = phmzr->text_to_phonemes(ru::utf8_encode(run));
-                run.clear();
-                const size_t b = seg.find_first_not_of(" \t\n\r");
-                const size_t e = seg.find_last_not_of(" \t\n\r");
-                if (b == std::string::npos) return;
-                if (!out.empty()) out += ' ';
-                out += seg.substr(b, e - b + 1);
-            };
-            for (const uint32_t cp : cps) {
-                if (is_pause(cp)) {
-                    flush();
-                    if (!out.empty()) out += ' ';
-                    out += ru::utf8_encode(std::vector<uint32_t>{ cp });
-                } else {
-                    run.push_back(cp);
-                }
-            }
-            flush();
-            text = std::move(out);
-        }
+        // Preserve the pause marks espeak strips and that the byte-based
+        // STOPPING_TOKENS split cannot see (em-dash, straight / curly double
+        // quotes, ellipsis). Each is swapped for a single-byte sentinel that IS
+        // in STOPPING_TOKENS, so a single text_to_phonemes pass keeps it out of
+        // espeak and re-emits it verbatim; we then expand it back into the real
+        // character (space-delimited) the model vocab treats as a pause.
+        text = ru::pause_sentinels_encode(text);
+        text = phmzr->text_to_phonemes(text);
+        text = ru::collapse_ws(ru::pause_sentinels_decode(text));
         text = ru::separate_punct(text);
         phonemized_prompt = ru::lengthen_sch(ru::reduce_vowels(ru::normalize(text)));
     } else {

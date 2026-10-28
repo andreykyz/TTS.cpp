@@ -290,7 +290,12 @@ static const std::map<std::string, std::string> CONTRACTION_PHONEMES = {
 };
 
 // characters that Espeak-ng treats as stopping tokens.
-static std::string STOPPING_TOKENS = ".,:;!?";
+// The five trailing control bytes are sentinels the RU frontend briefly maps
+// the multibyte pause marks onto (em-dash, straight / curly double quotes,
+// ellipsis) so the byte-based split below keeps them out of espeak and re-emits
+// them verbatim; ru::pause_sentinels_decode turns them back into the real
+// characters. No real text contains these bytes, so they are inert elsewhere.
+static std::string STOPPING_TOKENS = ".,:;!?\x01\x02\x03\x04\x05";
 
 #ifdef ESPEAK_INSTALL
 /**

@@ -1027,10 +1027,17 @@ std::string phonemizer::text_to_phonemes(const char * text, size_t size) {
 #ifdef ESPEAK_INSTALL
 		auto parts = split(text, STOPPING_TOKENS, true);
 		std::string phonemes = "";
-		for (int i = 0; i < parts.size(); i+=2) {
-			phonemes += espeak_text_to_phonemes(parts[i].c_str());
-			if (preserve_punctuation && i + 1 < parts.size()) {
-				phonemes += parts[i+1];
+		// split() emits leading and consecutive delimiters as their own parts,
+		// so the parts do NOT strictly alternate speech/delimiter. Treat every
+		// single stopping-token byte as punctuation to keep and everything else
+		// as speech to phonemize, rather than assuming the parts[i]/parts[i+1]
+		// pairing (which emitted a speech run raw whenever the text began with
+		// punctuation or two stops sat side by side, e.g. after a quote).
+		for (const auto & part : parts) {
+			if (part.size() == 1 && STOPPING_TOKENS.find(part[0]) != std::string::npos) {
+				if (preserve_punctuation) phonemes += part;
+			} else {
+				phonemes += espeak_text_to_phonemes(part.c_str());
 			}
 		}
 		return phonemes;
