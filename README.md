@@ -21,10 +21,45 @@ In this endeavor, MacOS and metal support will be treated as the primary platfor
 | [Parler TTS Mini](https://huggingface.co/parler-tts/parler-tts-mini-v1)  |&check;|&check;|&check;|[here](https://huggingface.co/mmwillet2/Parler_TTS_GGUF)|
 | [Parler TTS Large](https://huggingface.co/parler-tts/parler-tts-large-v1)|&check;|&check;|&check;|[here](https://huggingface.co/mmwillet2/Parler_TTS_GGUF)|
 | [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M)                      |&check;|&cross;|&check;|[here](https://huggingface.co/mmwillet2/Kokoro_GGUF)    |
+| [Kokoro‑ru (Russian)](https://huggingface.co/hexgrad/Kokoro-82M)         |&check;|&cross;|&check;|[here](https://huggingface.co/andreykyz/kokoro-ru-gguf) |
 | [Dia](https://github.com/nari-labs/dia)                                  |&check;|&check;|&check;|[here](https://huggingface.co/mmwillet2/Dia_GGUF)       |
 | [Orpheus](https://github.com/canopyai/Orpheus-TTS)                       |&check;|&cross;|&cross;|[here](https://huggingface.co/mmwillet2/Orpheus_GGUF)       |
 
 Additional Model support will initially be added based on open source model performance in both the [old TTS model arena](https://huggingface.co/spaces/TTS-AGI/TTS-Arena) and [new TTS model arena](https://huggingface.co/spaces/TTS-AGI/TTS-Arena-V2) as well as the availability of said models' architectures and checkpoints.
+
+#### Kokoro‑ru (Russian voices)
+
+Russian voices (`sveta`, `masha`, `dima`) run through a dedicated C++ G2P frontend
+(stress placement + orthoepic respelling + espeak‑ng phonemization). The runtime weights
+and everything needed to regenerate them live in a separate model repo, **not** in this
+one:
+
+> **[andreykyz/kokoro-ru-gguf](https://huggingface.co/andreykyz/kokoro-ru-gguf)**
+
+What to fetch from that repo:
+
+| Needed at | Path(s) inside the repo |
+|-----------|-------------------------|
+| **runtime — voices** | `kokoro-ru-v2-base.gguf` (sveta / masha / dima), `kokoro-ru-v2-dima.gguf` |
+| **runtime — RUAccent stress models** | `ruaccent/` → `accent.gguf`, `omograph.gguf`, `stress_usage.gguf`, `yo_homograph.gguf` |
+| **runtime — RUAccent dicts + espeak data** | `ruaccent-data/` → `dictionary/`, `nn/`, `espeak-data/` |
+| **conversion scripts (Kokoro → GGUF)** | `conversion/convert_local_kokoro.py` (local `*.pth` → GGUF, offline; the `.pth` files are in the repo too) |
+| **conversion scripts (RUAccent → GGUF)** | `conversion/convert_ruaccent_to_gguf/` → `convert_ruaccent_to_gguf.py`, `ruaccent_dict_to_binary.py`, `forward_check.py`, `validate_ruaccent_gguf.py` |
+| **Python G2P reference** | `ru_g2p.py` (the reference frontend the C++ code mirrors) |
+
+Download the files and point the three required environment variables at them:
+
+```bash
+export KOKORO_RU_DATA_DIR=<ruaccent-data>       # RUAccent dictionaries (dictionary/, nn/)
+export KOKORO_RU_MODELS_DIR=<ruaccent ggufs>    # accent/omograph/stress_usage/yo_homograph .gguf
+export TTS_ESPEAK_DATA_PATH=<espeak-data>       # espeak-ng data shipped in ruaccent-data/espeak-data/
+```
+
+Generate with a voice GGUF and `-eid ru` (forces the Russian espeak voice):
+
+```bash
+tts-cli -mp kokoro-ru-v2-base.gguf -v sveta -eid ru -p "Привет, мир" -sp out.wav
+```
 
 #### Functionality
 
